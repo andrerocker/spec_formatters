@@ -7,9 +7,7 @@ require "rake/clean"
 task :default => :rspec
 
 RSpec::Core::RakeTask.new("rspec") do |t|
-  mapper       = { "junit" => "JUnitFormatter",
-                   "tap"   => "TapFormatter"
-                 }
+  mapper       = { "junit" => "JUnitFormatter", "tap" => "TapFormatter" }
   format       = mapper[ENV["format"]] || "progress"
   formatters   = File.expand_path(File.dirname(__FILE__) + "/lib/rspec-extra-formatters.rb")
   t.rspec_opts = ["-r \"#{formatters}\"", "-f \"#{format}\""]
