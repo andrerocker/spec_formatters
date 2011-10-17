@@ -30,13 +30,11 @@ require "stringio"
 require File.expand_path(File.dirname(__FILE__) + "/../spec_helper.rb")
 
 describe TapFormatter do
-
   it "should initialize the counter to 0" do
     TapFormatter.new(StringIO.new).total.should eql(0)
   end
 
   describe "example_passed" do
-
     it "should increment the counter and use the full_description attribute" do
       example = mock("example")
       example.should_receive(:metadata).and_return({:full_description => "foobar"})
@@ -48,11 +46,9 @@ describe TapFormatter do
       f.total.should eql(1)
       output.string.should == "ok 1 - foobar\n"
     end
-
   end
 
   describe "example_failed" do
-
     it "should increment the counter and use the full_description attribute" do
       example = mock("example")
       example.should_receive(:metadata).and_return({:full_description => "foobar"})
@@ -83,7 +79,6 @@ describe TapFormatter do
   end
 
   describe "dump_summary" do
-
     it "should print the number of tests if there were tests" do
       example = mock("example")
       example.should_receive(:metadata).and_return({:full_description => "foobar"})
@@ -109,7 +104,5 @@ not ok 3 - # TODO foobar
       f = TapFormatter.new(@output)
       f.dump_summary(0, 0, 0, 0)
     end
-
   end
-
 end
