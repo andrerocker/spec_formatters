@@ -30,7 +30,6 @@ require "time"
 require "rspec/core/formatters/base_formatter"
 
 class JUnitFormatter < RSpec::Core::Formatters::BaseFormatter
-
   attr_reader :test_results
 
   def initialize(output)
@@ -65,28 +64,38 @@ class JUnitFormatter < RSpec::Core::Formatters::BaseFormatter
 
   def dump_summary(duration, example_count, failure_count, pending_count)
     super(duration, example_count, failure_count, pending_count)
-    output.puts("<?xml version=\"1.0\" encoding=\"utf-8\" ?>")
-    output.puts("<testsuite errors=\"0\" failures=\"#{failure_count+pending_count}\" tests=\"#{example_count}\" time=\"#{duration}\" timestamp=\"#{Time.now.iso8601}\">")
-    output.puts("  <properties />")
-    @test_results[:successes].each do |t|
-      md          = t.metadata
-      runtime     = md[:execution_result][:run_time]
-      description = _xml_escape(md[:full_description])
-      file_path   = _xml_escape(md[:file_path])
-      output.puts("  <testcase classname=\"#{file_path}\" name=\"#{description}\" time=\"#{runtime}\" />")
+    node_attributes = { :errors => 0, :failures => failure_count+pending_count,
+                        :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 }
+    
+    builder = Builder::XmlMarkup.new(:target => output, :ident => 1)
+    builder.instruct!
+    builder.testsuite node_attributes do |suite|
+      suite.properties
+      dump_specs suite, @test_results[:successes]
+      dump_specs suite, @test_results[:failures] do |testcase, spec|
+        testcase.failure :message => "failure", :type => "failure" do |failure|
+          failure.cdata! read_failure(spec)
+        end
+      end
     end
-    @test_results[:failures].each do |t|
-      md          = t.metadata
-      description = _xml_escape(md[:full_description])
-      file_path   = _xml_escape(md[:file_path])
-      runtime     = md[:execution_result][:run_time]
-      output.puts("  <testcase classname=\"#{file_path}\" name=\"#{description}\" time=\"#{runtime}\">")
-      output.puts("    <failure message=\"failure\" type=\"failure\">")
-      output.puts("<![CDATA[ #{read_failure(t)} ]]>")
-      output.puts("    </failure>")
-      output.puts("  </testcase>")
+  end
+  
+  def dump_specs(propertie, specs)
+    specs.each do |spec|
+      metadata = spec.metadata
+      node_attributes = { :classname => metadata[:file_path], :name => metadata[:full_description],
+                          :time => metadata[:execution_result][:run_time] }
+      
+      if block_given?
+        propertie.testcase node_attributes do |node|
+          yield(node, spec)
+        end
+        
+        return
+      end
+      
+      propertie.testcase node_attributes
     end
-    output.puts("</testsuite>")
   end
 
   def _xml_escape(x)
