@@ -3,5 +3,5 @@ source :rubygems
 gem "builder"
 
 group :test do
-  gem "rspec"
+  gem "rspec", "~> 1.3"
 end
