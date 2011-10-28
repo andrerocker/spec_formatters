@@ -1,16 +1,16 @@
 require "rubygems"
 require "rake"
-require "rspec/core/rake_task"
+require "spec/rake/spectask"
 require "rubygems/package_task"
 require "rake/clean"
 
 task :default => :rspec
 
-RSpec::Core::RakeTask.new("rspec") do |t|
+Spec::Rake::SpecTask.new("rspec") do |t|
   mapper       = { "junit" => "JUnitFormatter", "tap" => "TapFormatter" }
   format       = mapper[ENV["format"]] || "progress"
   formatters   = File.expand_path(File.dirname(__FILE__) + "/lib/rspec-extra-formatters.rb")
-  t.rspec_opts = ["-r \"#{formatters}\"", "-f \"#{format}\""]
+  t.spec_opts = ["-r \"#{formatters}\"", "-f \"#{format}\""]
   t.pattern    = "spec/**/*_spec.rb"
 end
 

@@ -1,11 +1,11 @@
 # -*- encoding : utf-8 -*-
-# 
+#
 # Copyright (c) 2011, Diego Souza
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #   * Redistributions of source code must retain the above copyright notice,
 #     this list of conditions and the following disclaimer.
 #   * Redistributions in binary form must reproduce the above copyright notice,
@@ -14,7 +14,7 @@
 #   * Neither the name of the <ORGANIZATION> nor the names of its contributors
 #     may be used to endorse or promote products derived from this software
 #     without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,69 +30,58 @@ require "stringio"
 require File.expand_path(File.dirname(__FILE__) + "/../spec_helper.rb")
 
 describe TapFormatter do
-  it "should initialize the counter to 0" do
-    TapFormatter.new(StringIO.new).total.should eql(0)
+  let(:f) do
+    TapFormatter.new({}, StringIO.new)
+  end
+
+ it "should initialize the counter to 0" do
+    f.total.should eql(0)
   end
 
   describe "example_passed" do
     it "should increment the counter and use the full_description attribute" do
       example = mock("example")
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
-
-      output = StringIO.new
-      f = TapFormatter.new(output)
+      example.should_receive(:description).and_return("foobar")
       f.example_passed(example)
 
       f.total.should eql(1)
-      output.string.should == "ok 1 - foobar\n"
+      f.output.string.should == "ok 1 - foobar\n"
     end
   end
 
   describe "example_failed" do
     it "should increment the counter and use the full_description attribute" do
       example = mock("example")
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
+      example.should_receive(:description).and_return("foobar")
+      f.example_failed(example, 1, "a failure")
 
-      output = StringIO.new
-      f = TapFormatter.new(output)
-      f.example_failed(example)
-      
       f.total.should eql(1)
-      output.string.should == "not ok 1 - foobar\n"
+      f.output.string.should == "not ok 1 - foobar\n"
     end
   end
 
   describe "example_pending" do
-
     it "should do the same as example_failed with TODO comment" do
       example = mock("example")
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
-      
-      output = StringIO.new
-      f = TapFormatter.new(output)
-      f.example_pending(example)
-      
-      f.total.should eql(1)
-      output.string.should == "not ok 1 - # TODO foobar\n"
-    end
+      example.should_receive(:description).and_return("foobar")
+      f.example_pending(example, 1, "a pending")
 
+      f.total.should eql(1)
+      f.output.string.should == "not ok 1 - # TODO foobar\n"
+    end
   end
 
   describe "dump_summary" do
     it "should print the number of tests if there were tests" do
       example = mock("example")
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
-      example.should_receive(:metadata).and_return({:full_description => "foobar"})
-      
-      output = StringIO.new
-      f = TapFormatter.new(output)
+      example.should_receive(:description).exactly(3).times.and_return("foobar")
+
       f.example_passed(example)
-      f.example_failed(example)
-      f.example_pending(example)
+      f.example_failed(example, 0, "a failed example")
+      f.example_pending(example, 0, "a pending example")
       f.dump_summary(0.1, 3, 1, 1)
 
-      output.string.should == <<-EOF
+      f.output.string.should == <<-EOF
 ok 1 - foobar
 not ok 2 - foobar
 not ok 3 - # TODO foobar
@@ -101,7 +90,6 @@ not ok 3 - # TODO foobar
     end
 
     it "should print nothing if there were not tests" do
-      f = TapFormatter.new(@output)
       f.dump_summary(0, 0, 0, 0)
     end
   end

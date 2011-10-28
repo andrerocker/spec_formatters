@@ -1,4 +1,4 @@
 $:.unshift File.expand_path "../lib/"
 
-require "rspec"
+require "spec"
 require "rspec-extra-formatters"

@@ -1,11 +1,11 @@
 # -*- encoding : utf-8 -*-
-# 
+#
 # Copyright (c) 2011, Diego Souza
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 #   * Redistributions of source code must retain the above copyright notice,
 #     this list of conditions and the following disclaimer.
 #   * Redistributions in binary form must reproduce the above copyright notice,
@@ -14,7 +14,7 @@
 #   * Neither the name of the <ORGANIZATION> nor the names of its contributors
 #     may be used to endorse or promote products derived from this software
 #     without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,15 +26,19 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+require "rubygems"
 require "time"
-require "rspec/core/formatters/base_formatter"
+require "builder"
+require "spec/runner/formatter/base_formatter"
 
-class JUnitFormatter < RSpec::Core::Formatters::BaseFormatter
+class JUnitFormatter < Spec::Runner::Formatter::BaseFormatter
   attr_reader :test_results
+  attr_reader :output
 
-  def initialize(output)
-    super(output)      
-    @test_results = { :failures => [], :successes => [] }
+  def initialize(options, output)
+    super(options, output)
+    @test_results = { :failures => [], :successes => [], :exceptions => {} }
+    @output = output
   end
 
   def example_passed(example)
@@ -42,31 +46,21 @@ class JUnitFormatter < RSpec::Core::Formatters::BaseFormatter
     @test_results[:successes].push(example)
   end
 
-  def example_pending(example)
-    self.example_failed(example)
+  def example_pending(example, count, failure)
+    self.example_failed(example, count, failure)
   end
 
-  def example_failed(example)
-    super(example)
+  def example_failed(example, count, failure)
+    super(example, count, failure)
     @test_results[:failures].push(example)
-  end
-
-  def read_failure(t)
-    exception = t.metadata[:execution_result][:exception_encountered] || t.metadata[:execution_result][:exception]
-    message = ""
-    unless (exception.nil?)
-      message  = exception.message
-      message += "\n"
-      message += format_backtrace(exception.backtrace, t).join("\n")
-    end
-    return(message)
+    @test_results[:exceptions][example] = failure
   end
 
   def dump_summary(duration, example_count, failure_count, pending_count)
     super(duration, example_count, failure_count, pending_count)
     node_attributes = { :errors => 0, :failures => failure_count+pending_count,
                         :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 }
-    
+
     builder = Builder::XmlMarkup.new(:target => output, :ident => 1)
     builder.instruct!
     builder.testsuite node_attributes do |suite|
@@ -74,34 +68,25 @@ class JUnitFormatter < RSpec::Core::Formatters::BaseFormatter
       dump_specs suite, @test_results[:successes]
       dump_specs suite, @test_results[:failures] do |testcase, spec|
         testcase.failure :message => "failure", :type => "failure" do |failure|
-          failure.cdata! read_failure(spec)
+          failure.cdata! @test_results[:exceptions][spec]
         end
       end
     end
   end
-  
+
   def dump_specs(propertie, specs)
     specs.each do |spec|
-      metadata = spec.metadata
-      node_attributes = { :classname => metadata[:file_path], :name => metadata[:full_description],
-                          :time => metadata[:execution_result][:run_time] }
-      
+      node_attributes = { :classname => spec.location, :name => spec.description, :time => 0 }
+
       if block_given?
         propertie.testcase node_attributes do |node|
           yield(node, spec)
         end
-        
+
         return
       end
-      
+
       propertie.testcase node_attributes
     end
-  end
-
-  def _xml_escape(x)
-    x.gsub("&", "&amp;").
-      gsub("\"", "&quot;").
-      gsub(">", "&gt;").
-      gsub("<", "&lt;")
   end
 end
