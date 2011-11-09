@@ -61,7 +61,7 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseFormatter
     node_attributes = { :errors => 0, :failures => failure_count+pending_count,
                         :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 }
 
-    builder = Builder::XmlMarkup.new(:target => output, :ident => 1)
+    builder = Builder::XmlMarkup.new(:target => output, :ident => 2)
     builder.instruct!
     builder.testsuite node_attributes do |suite|
       suite.properties

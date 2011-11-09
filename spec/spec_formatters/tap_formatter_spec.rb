@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 require "stringio"
-require File.expand_path(File.dirname(__FILE__) + "/../spec_helper.rb")
+require "spec_helper"
 
 describe TapFormatter do
   let(:f) do
