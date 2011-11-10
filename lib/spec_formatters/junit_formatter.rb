@@ -29,36 +29,35 @@
 require "rubygems"
 require "time"
 require "builder"
-require "spec/runner/formatter/base_formatter"
+require "spec/runner/formatter/base_text_formatter"
+require "spec/runner/formatter/no_op_method_missing"
 
-class JUnitFormatter < Spec::Runner::Formatter::BaseFormatter
-  attr_reader :test_results
-  attr_reader :output
+class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
+  include Spec::Runner::Formatter::NOOPMethodMissing
 
   def initialize(options, output)
-    super(options, output)
+    super
     @test_results = { :failures => [], :successes => [], :exceptions => {} }
-    @output = output
   end
 
-  def example_passed(example)
-    super(example)
-    @test_results[:successes].push(example)
-  end
-
-  def example_pending(example, count, failure)
-    self.example_failed(example, count, failure)
-  end
-
-  def example_failed(example, count, failure)
-    super(example, count, failure)
+  def example_failed(example, counter, failure)
     @test_results[:failures].push(example)
     @test_results[:exceptions][example] = failure
   end
 
-  def dump_summary(duration, example_count, failure_count, pending_count)
-    super(duration, example_count, failure_count, pending_count)
-    node_attributes = { :errors => 0, :failures => failure_count+pending_count,
+  def example_passed(example)
+    @test_results[:successes].push(example)
+  end
+
+  def example_pending(example, message, deprecated_pending_location=nil)
+    super
+    @test_results[:failures].push(example)
+  end
+
+  def start_dump
+    failure_count = @test_results[:failures].size
+
+    node_attributes = { :errors => 0, :failures => failure_count,
                         :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 }
 
     builder = Builder::XmlMarkup.new(:target => output, :ident => 2)
