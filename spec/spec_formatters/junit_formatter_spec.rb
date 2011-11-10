@@ -75,7 +75,14 @@ describe JUnitFormatter do
       failure_example.should_receive(:description).and_return("foobar-failure")
 
       f.example_passed(success_example)
-      f.example_failed(failure_example, 0, "failed")
+
+      exception = mock "exception"
+      exception.should_receive(:message).and_return("failed")
+
+      failure = mock "failure"
+      failure.should_receive(:exception).and_return(exception)
+
+      f.example_failed(failure_example, 0, failure)
       f.dump_summary("0.1", 2, 1, 0)
 
       doc = REXML::Document.new(f.output.string)
@@ -99,6 +106,12 @@ describe JUnitFormatter do
       failure.attributes["message"].should eql "failure"
       failure.attributes["type"].should eql "failure"
       failure.cdatas[0].to_s.should eql "failed"
+    end
+  end
+
+  describe "error stuff" do
+    it "should throw e error" do
+      true.should be false 
     end
   end
 end

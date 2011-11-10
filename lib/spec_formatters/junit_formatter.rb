@@ -67,7 +67,7 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
       dump_specs suite, test_results[:successes]
       dump_specs suite, test_results[:failures] do |testcase, spec|
         testcase.failure :message => "failure", :type => "failure" do |failure|
-          failure.cdata! test_results[:exceptions][spec]
+          failure.cdata! test_results[:exceptions][spec].exception.message
         end
       end
     end
@@ -87,5 +87,8 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
 
       propertie.testcase node_attributes
     end
+  end
+
+  def dump_failure(counter, failure)
   end
 end
