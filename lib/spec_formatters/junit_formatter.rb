@@ -88,4 +88,8 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
       propertie.testcase node_attributes
     end
   end
+
+  def dump_summary(duration, example_count, failure_count, pending_count)
+    #suppress original impl
+  end
 end
