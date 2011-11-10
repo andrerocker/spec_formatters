@@ -34,6 +34,7 @@ require "spec/runner/formatter/no_op_method_missing"
 
 class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
   include Spec::Runner::Formatter::NOOPMethodMissing
+  attr_accessor :test_results
 
   def initialize(options, output)
     super
@@ -41,21 +42,20 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
   end
 
   def example_failed(example, counter, failure)
-    @test_results[:failures].push(example)
-    @test_results[:exceptions][example] = failure
+    test_results[:failures].push(example)
+    test_results[:exceptions][example] = failure
   end
 
   def example_passed(example)
-    @test_results[:successes].push(example)
+    test_results[:successes].push(example)
   end
 
   def example_pending(example, message, deprecated_pending_location=nil)
-    super
-    @test_results[:failures].push(example)
+    test_results[:failures].push(example)
   end
 
-  def start_dump
-    failure_count = @test_results[:failures].size
+  def dump_summary(duration, example_count, failure_count, pending_count)
+    failure_count = test_results[:failures].size
 
     node_attributes = { :errors => 0, :failures => failure_count,
                         :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 }
@@ -64,10 +64,10 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
     builder.instruct!
     builder.testsuite node_attributes do |suite|
       suite.properties
-      dump_specs suite, @test_results[:successes]
-      dump_specs suite, @test_results[:failures] do |testcase, spec|
+      dump_specs suite, test_results[:successes]
+      dump_specs suite, test_results[:failures] do |testcase, spec|
         testcase.failure :message => "failure", :type => "failure" do |failure|
-          failure.cdata! @test_results[:exceptions][spec]
+          failure.cdata! test_results[:exceptions][spec]
         end
       end
     end
@@ -87,9 +87,5 @@ class JUnitFormatter < Spec::Runner::Formatter::BaseTextFormatter
 
       propertie.testcase node_attributes
     end
-  end
-
-  def dump_summary(duration, example_count, failure_count, pending_count)
-    #suppress original impl
   end
 end
